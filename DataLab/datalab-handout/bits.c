@@ -215,7 +215,7 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  return ((~!!x + 1) & y) + ((~!x + 1) & z);
 }
 
 /* 
@@ -226,7 +226,9 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int diffsign = !(x >> 31) ^ !(y >> 31);
+  int xneg = diffsign & (x >> 31);
+  return xneg | (!diffsign & !((y + (~x + 1)) >> 31));
 }
 
 //4
@@ -239,7 +241,7 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  return ((x | (~x + 1)) >> 31) + 1;
 }
 
 /* howManyBits - return the minimum number of bits required to represent x in
