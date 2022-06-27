@@ -202,7 +202,9 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+  int msb1 = !((x + (~0x30 + 1)) & (1 << 31));
+  int msb2 = !((0x39 + (~x + 1)) & (1 << 31));
+  return msb1 & msb2;
 }
 
 /* 
