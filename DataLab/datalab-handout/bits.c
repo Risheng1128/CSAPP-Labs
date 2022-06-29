@@ -273,7 +273,31 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  union floatpoint{
+    struct {
+      unsigned frac:23;
+      unsigned exp:8;
+      unsigned s:1;
+    } u1;
+    unsigned u2;
+  } fp;
+  fp.u2 = uf;
+  
+  // NaN and infinitas
+  if (fp.u1.exp == 0xff)
+    return uf;
+  
+  // denormalized
+  if (!fp.u1.exp) {
+    if (fp.u1.frac & (1 << 22))
+      fp.u1.exp++;
+    fp.u1.frac <<= 1;
+    return fp.u2;
+  }
+
+  // normalized
+  fp.u1.exp++;
+  return fp.u2;
 }
 
 /* 
