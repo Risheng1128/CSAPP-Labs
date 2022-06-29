@@ -141,7 +141,8 @@ NOTES:
  *   Max ops: 14
  *   Rating: 1
  */
-int bitXor(int x, int y) {
+int bitXor(int x, int y)
+{
   return ~(~(~x & y) & ~(x & ~y));
 }
 
@@ -151,7 +152,8 @@ int bitXor(int x, int y) {
  *   Max ops: 4
  *   Rating: 1
  */
-int tmin(void) {
+int tmin(void)
+{
   return 1 << 31;
 }
 
@@ -163,7 +165,8 @@ int tmin(void) {
  *   Max ops: 10
  *   Rating: 1
  */
-int isTmax(int x) {
+int isTmax(int x)
+{
   int tmp = x + 1;
   x += tmp;
   // if x = 0xff...ff, tmp = 0
@@ -178,7 +181,8 @@ int isTmax(int x) {
  *   Max ops: 12
  *   Rating: 2
  */
-int allOddBits(int x) {
+int allOddBits(int x)
+{
   int mask = (0xAA << 24) | (0xAA << 16) | (0xAA << 8) | 0xAA;
   return !((x & mask) ^ mask);
 }
@@ -190,7 +194,8 @@ int allOddBits(int x) {
  *   Max ops: 5
  *   Rating: 2
  */
-int negate(int x) {
+int negate(int x)
+{
   return ~x + 1;
 }
 
@@ -204,7 +209,8 @@ int negate(int x) {
  *   Max ops: 15
  *   Rating: 3
  */
-int isAsciiDigit(int x) {
+int isAsciiDigit(int x)
+{
   int msb1 = !((x + (~0x30 + 1)) & (1 << 31));
   int msb2 = !((0x39 + (~x + 1)) & (1 << 31));
   return msb1 & msb2;
@@ -217,7 +223,8 @@ int isAsciiDigit(int x) {
  *   Max ops: 16
  *   Rating: 3
  */
-int conditional(int x, int y, int z) {
+int conditional(int x, int y, int z)
+{
   return ((~!!x + 1) & y) + ((~!x + 1) & z);
 }
 
@@ -228,7 +235,8 @@ int conditional(int x, int y, int z) {
  *   Max ops: 24
  *   Rating: 3
  */
-int isLessOrEqual(int x, int y) {
+int isLessOrEqual(int x, int y)
+{
   int diffsign = !(x >> 31) ^ !(y >> 31);
   int xneg = diffsign & (x >> 31);
   return xneg | (!diffsign & !((y + (~x + 1)) >> 31));
@@ -243,7 +251,8 @@ int isLessOrEqual(int x, int y) {
  *   Max ops: 12
  *   Rating: 4 
  */
-int logicalNeg(int x) {
+int logicalNeg(int x)
+{
   return ((x | (~x + 1)) >> 31) + 1;
 }
 
@@ -259,7 +268,8 @@ int logicalNeg(int x) {
  *  Max ops: 90
  *  Rating: 4
  */
-int howManyBits(int x) {
+int howManyBits(int x)
+{
   return 0;
 }
 
@@ -275,32 +285,27 @@ int howManyBits(int x) {
  *   Max ops: 30
  *   Rating: 4
  */
-unsigned floatScale2(unsigned uf) {
-  union floatpoint{
-    struct {
-      unsigned frac:23;
-      unsigned exp:8;
-      unsigned s:1;
-    } u1;
-    unsigned u2;
-  } fp;
-  fp.u2 = uf;
+unsigned floatScale2(unsigned uf)
+{
+  unsigned frac = uf & 0x7fffff;
+  unsigned exp = (uf >> 23) & 0xff;
+  unsigned s = uf >> 31;
   
   // NaN and infinitas
-  if (fp.u1.exp == 0xff)
+  if (exp == 0xff)
     return uf;
   
   // denormalized
-  if (!fp.u1.exp) {
-    if (fp.u1.frac & (1 << 22))
-      fp.u1.exp++;
-    fp.u1.frac <<= 1;
-    return fp.u2;
+  if (!exp) {
+    if (frac & (1 << 22))
+      exp++;
+    frac <<= 1;
+    return (s << 31) | (exp << 23) | frac;
   }
 
   // normalized
-  fp.u1.exp++;
-  return fp.u2;
+  exp++;
+  return (s << 31) | (exp << 23) | frac;
 }
 
 /* 
@@ -315,8 +320,34 @@ unsigned floatScale2(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
-int floatFloat2Int(unsigned uf) {
-  return 2;
+int floatFloat2Int(unsigned uf) 
+{
+  int res = 1, shift, i;
+  unsigned frac = uf & 0x7fffff;
+  unsigned exp = (uf >> 23) & 0xff;
+  unsigned s = uf >> 31;
+
+  // NaN and infinitas
+  if (exp == 0xff)
+    return 1 << 31;
+
+  shift = exp - 127;
+  if (shift < 0)
+    return 0;
+
+  for (i = 0; i < shift; i++) {
+    res <<= 1;
+    res += (frac >> (22 - i)) & 1;
+    // overflow
+    if (res & (1 << 31))
+      return 1 << 31;
+  }
+
+  // negative
+  if (s)
+    res = ~res + 1;
+
+  return res;
 }
 
 /* 
@@ -332,6 +363,19 @@ int floatFloat2Int(unsigned uf) {
  *   Max ops: 30 
  *   Rating: 4
  */
-unsigned floatPower2(int x) {
-    return 2;
+unsigned floatPower2(int x)
+{
+  unsigned exp = 0;
+  // too small
+  if (x < -127)
+    return 0;
+
+  // too large
+  if (x > 127)
+    return 0xff << 23;
+
+  // create bit-level of floating point which value is 2
+  exp |= 1 << 7;
+  exp += x - 1;
+  return exp << 23;
 }
