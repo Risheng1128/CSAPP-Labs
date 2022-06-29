@@ -270,7 +270,30 @@ int logicalNeg(int x)
  */
 int howManyBits(int x)
 {
-  return 0;
+  int res = 0, tmp;
+  // if x is a negative number, than msb = 0x80000000
+  int msb = x & (1 << 31);
+  // if x is negative number, use 2'complement
+  x = ((~!!msb + 1) & ~x) + ((~!msb + 1) & x);
+
+  tmp = !!(x >> 16) << 4;
+  res |= tmp;
+  x >>= tmp;
+  tmp = !!(x >> 8) << 3;
+  res |= tmp;
+  x >>= tmp;
+  tmp = !!(x >> 4) << 2;
+  res |= tmp;
+  x >>= tmp;
+  tmp = !!(x >> 2) << 1;
+  res |= tmp;
+  x >>= tmp;
+  tmp = !!(x >> 1);
+  res |= tmp;
+  x >>= tmp;
+  res += x;
+
+  return res + 1;
 }
 
 //float
