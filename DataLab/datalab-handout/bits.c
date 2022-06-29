@@ -164,7 +164,10 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return !(x ^ ((0x7F << 24) | (0xFF << 16) | (0xFF << 8) | 0xFF));
+  int tmp = x + 1;
+  x += tmp;
+  // if x = 0xff...ff, tmp = 0
+  return !~x & !!tmp;
 }
 
 /* 
